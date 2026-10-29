@@ -1,0 +1,11 @@
+{
+  "name": "photo-portal",
+  "private": true,
+  "scripts": {
+    "lint": "biome check site",
+    "fix": "biome check --write site"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4"
+  }
+}

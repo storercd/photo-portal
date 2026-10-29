@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photos</title>
+  <link rel="stylesheet" href="vendor/photoswipe/photoswipe.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1><a href="./" id="title">Photos</a></h1>
+    <select id="event"><option value="">All events</option></select>
+    <select id="tag"><option value="">All tags</option></select>
+    <select id="rating">
+      <option value="0">Any rating</option>
+      <option value="1">★ 1+</option><option value="2">★ 2+</option>
+      <option value="3">★ 3+</option><option value="4">★ 4+</option>
+      <option value="5">★ 5</option>
+    </select>
+    <input id="search" type="search" placeholder="Search…">
+  </header>
+  <main id="collections" hidden></main>
+  <main id="grid"></main>
+  <script src="config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
