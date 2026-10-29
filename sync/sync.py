@@ -313,7 +313,11 @@ def build_collection(coll, files, store, dry_run):
                     written += len(todo)
                 done = len(photos) + 1
                 if done % 10 == 0:
-                    print(f"  ... {done}/{total} photos processed ({done * 100 // max(total, 1)}%), {written} files uploaded", flush=True)
+                    pct = done * 100 // max(total, 1)
+                    print(
+                        f"  ... {done}/{total} photos processed ({pct}%), {written} files uploaded",
+                        flush=True,
+                    )
         photos.append(
             {
                 "id": pid,
