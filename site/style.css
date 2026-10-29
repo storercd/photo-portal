@@ -30,16 +30,22 @@ input {
   border-radius: 6px;
 }
 #grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  --row-height: 200px;
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 0 6px 6px;
 }
+/* Justified rows: each photo's width follows its aspect ratio (--ar) and rows fill the width. */
+#grid::after {
+  content: "";
+  flex-grow: 1000;
+}
 #grid img {
-  width: 100%;
-  aspect-ratio: 3 / 2;
+  height: var(--row-height);
+  flex: calc(var(--ar) * 100) 1 calc(var(--ar) * var(--row-height));
+  min-width: 0;
   object-fit: cover;
-  display: block;
   cursor: zoom-in;
   background: #222;
 }
@@ -125,7 +131,7 @@ h1 a {
 }
 @media (max-width: 600px) {
   #grid {
-    grid-template-columns: repeat(2, 1fr);
+    --row-height: 120px;
   }
   header {
     flex-wrap: wrap;

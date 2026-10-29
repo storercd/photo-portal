@@ -33,6 +33,7 @@ function render() {
     ...shown.map((p, i) => {
       const img = document.createElement("img");
       img.loading = "lazy";
+      img.style.setProperty("--ar", p.width / p.height);
       img.src = `${base}/${p.thumb}`;
       img.alt = p.title;
       img.title = `${p.event} · ${p.date} · ${"★".repeat(p.rating)}`;
