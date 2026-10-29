@@ -274,6 +274,16 @@ def upload(store, path, img, item):
 
 def build_collection(coll, files, store, dry_run):
     photos, written = [], 0
+    total = 0
+    if not dry_run:
+        for p in files:  # cheap metadata-only pass so progress can show a total
+            try:
+                rating, keywords = read_xmp(p)
+                if match(coll, p.name, photo_date(None, p), rating, keywords) is not None:
+                    total += 1
+            except FileNotFoundError:
+                pass
+        print(f"  {total} photos match this collection", flush=True)
     for p in files:
         try:
             rating, keywords = read_xmp(p)
@@ -303,7 +313,7 @@ def build_collection(coll, files, store, dry_run):
                     written += len(todo)
                 done = len(photos) + 1
                 if done % 10 == 0:
-                    print(f"  ... {done} photos processed, {written} files uploaded", flush=True)
+                    print(f"  ... {done}/{total} photos processed ({done * 100 // max(total, 1)}%), {written} files uploaded", flush=True)
         photos.append(
             {
                 "id": pid,
