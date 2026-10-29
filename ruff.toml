@@ -1,0 +1,15 @@
+target-version = "py312"
+line-length = 100
+extend-exclude = ["site"]
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # bugbear
+    "UP",  # pyupgrade
+    "C4",  # comprehensions
+    "SIM", # simplifications
+]
