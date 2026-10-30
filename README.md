@@ -9,8 +9,8 @@ sync/   sync.py: select photos by collection, resize + upload to R2, build colle
 
 ## Setup (done; account `405605de0b5c781d4617017d91f13c6c`, free tier)
 
-- **R2 bucket** `photo-portal`, public via the r2.dev dev URL `https://pub-9a55850840eb43c6b3b3af67cd6c9302.r2.dev` (rate-limited, fine for testing; switch to a custom domain later). `PHOTO_BASE_URL` in `site/config.js` points at it.
-- **CORS** on the bucket: `sync/r2-cors.json` (GET/HEAD from `http://localhost:8123`, `http://localhost:8000`, `https://*.pages.dev`). Re-apply with `npx wrangler r2 bucket cors set photo-portal --file sync/r2-cors.json`.
+- **R2 bucket** `photo-portal`, public via the custom domain `https://photos.chrisstorerphoto.com` (zone `chrisstorerphoto.com`). `PHOTO_BASE_URL` in `site/config.js` points at it.
+- **CORS** on the bucket: `sync/r2-cors.json` (GET/HEAD from `http://localhost:8123`, `:8000`, `:8788`, `https://*.pages.dev`, `https://chrisstorerphoto.com`). Re-apply with `npx wrangler r2 bucket cors set photo-portal --file sync/r2-cors.json`.
 - **R2 API token** (Object Read & Write, scoped to the bucket) is in a git-ignored `.env` at the repo root:
   ```
   R2_ACCOUNT_ID=...  R2_ACCESS_KEY_ID=...  R2_SECRET_ACCESS_KEY=...  R2_BUCKET=photo-portal
@@ -104,4 +104,14 @@ Each photo gets `thumb` (600 px, grid), `med` (1200 px) and `web` (2000 px) JPEG
 
 ## Viewer
 
-Clicking a photo opens [PhotoSwipe](https://photoswipe.com) 5.4.4 (MIT, vendored in `site/vendor/photoswipe/`), for desktop and phones alike: swipe or arrow keys to move, pinch/double-tap to zoom, X / Esc / swipe-down to close, and the phone's Back button closes the viewer and returns to the thumbnails. The ⓘ button (or `i`) opens a panel with title, event, date, rating, and Download (2000 px) and Share buttons. Share uses the phone's share sheet (including "Save Image" on iOS) when the browser supports sharing files. Downloads are fetched by the page and saved as a blob, since cross-origin `download` links don't work with r2.dev.
+Clicking a photo opens [PhotoSwipe](https://photoswipe.com) 5.4.4 (MIT, vendored in `site/vendor/photoswipe/`), for desktop and phones alike: swipe or arrow keys to move, pinch/double-tap to zoom, X / Esc / swipe-down to close, and the phone's Back button closes the viewer and returns to the thumbnails. The ⓘ button (or `i`) opens a panel with title, event, date, rating, and Download (2000 px) and Share buttons. Share uses the phone's share sheet (including "Save Image" on iOS) when the browser supports sharing files. Downloads are fetched by the page and saved as a blob, since cross-origin `download` links don't work with the R2 domain.
+
+## Contact form
+
+`site/about.html` posts to `functions/api/contact.js` (a Pages Function), which checks Cloudflare Turnstile and emails the message through [Resend](https://resend.com).
+
+- Secrets (from the repo root): `npx wrangler pages secret put RESEND_API_KEY --project-name photo-portal`, likewise `TURNSTILE_SECRET` and `CONTACT_TO` (the inbox that receives messages).
+- Optional `CONTACT_FROM`: defaults to Resend's `onboarding@resend.dev`, which can only email the Resend account's own address. The domain `chrisstorerphoto.com` is verified in Resend, so `CONTACT_FROM` is `Photo Portal <contact@chrisstorerphoto.com>`.
+- `data-sitekey` in `about.html` is the public key of the Turnstile widget for `chrisstorerphoto.com`; its secret is `TURNSTILE_SECRET`. For local testing on `localhost`, add `localhost` to the widget's hostnames or temporarily use Cloudflare's test key `1x00000000000000000000AA` with secret `1x0000000000000000000000000000000AA`.
+- Deploy from the repo root so `functions/` is picked up: `npx wrangler pages deploy /tmp/deploy --project-name photo-portal` only uploads functions found in the current directory, so run it from here.
+- Try it locally (a plain static server has no `/api/contact`): `set -a; . ./.env; set +a; npx wrangler pages dev site -b RESEND_API_KEY="$RESEND_API_KEY" -b TURNSTILE_SECRET="$TURNSTILE_SECRET" -b CONTACT_TO="$CONTACT_TO"`, then open http://localhost:8788/about.

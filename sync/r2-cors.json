@@ -2,7 +2,7 @@
   "rules": [
     {
       "allowed": {
-        "origins": ["http://localhost:8123", "http://localhost:8000", "https://*.pages.dev"],
+        "origins": ["http://localhost:8123", "http://localhost:8000", "http://localhost:8788", "https://*.pages.dev", "https://chrisstorerphoto.com"],
         "methods": ["GET", "HEAD"],
         "headers": ["*"]
       },

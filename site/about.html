@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About the Photographer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1><a href="./">Photos</a></h1>
+  </header>
+  <main class="about">
+    <img class="about-photo" src="photographer.jpg" alt="Chris Storer">
+    <div class="about-text">
+      <h2>About the Photographer</h2>
+      <p>Hi, I'm Chris Storer.</p>
+      <p>
+        I'm an amateur photographer based in Everett, Washington. I am particularly interested in
+        sports, action, and animals, but I am excited to try new things and I am open to unique
+        opportunities!
+      </p>
+      <p>
+        To see more of my daily work, visit my
+        <a class="link" href="https://www.instagram.com/chrisstorerphoto/">Instagram</a>.
+      </p>
+      <p>
+        Looking for other photos of the games, additional edits, originals, etc.? Feel free to drop
+        me a message, and I will do my best to help!
+      </p>
+      <h2>Contact</h2>
+      <form id="contact-form">
+        <label>Name <input name="name" required maxlength="200"></label>
+        <label>Email <input name="email" type="email" required maxlength="200"></label>
+        <label>Message <textarea name="message" rows="6" required maxlength="5000"></textarea></label>
+        <input name="website" class="hide" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAFsLxm1Yb8xFKD0n"></div>
+        <button type="submit">Send</button>
+        <p id="contact-status" role="status"></p>
+      </form>
+    </div>
+  </main>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script type="module" src="contact.js"></script>
+</body>
+</html>
