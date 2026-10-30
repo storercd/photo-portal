@@ -334,6 +334,14 @@ def build_collection(coll, files, store, dry_run):
                 **({"full": keys["full"]} if "full" in keys else {}),
             }
         )
+    missing = [x["title"] for x in photos if not x["event"]]
+    if missing:
+        print(
+            f"  WARNING: {len(missing)} photo(s) have no event tag "
+            f"(shown as 'NO EVENT' in the portal): {', '.join(missing[:5])}"
+            f"{', ...' if len(missing) > 5 else ''}",
+            flush=True,
+        )
     photos.sort(key=lambda x: x["title"])  # filenames sort chronologically
     return photos, written
 
