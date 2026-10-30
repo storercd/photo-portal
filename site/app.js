@@ -90,7 +90,7 @@ async function showCollection() {
   for (const p of photos) p.event ||= "NO EVENT";
   document.title = data.title;
   document.getElementById("title").textContent = data.title;
-  for (const name of [...new Set(photos.map((p) => p.event).filter(Boolean))]) {
+  for (const name of [...new Set(photos.map((p) => p.event).filter(Boolean))].reverse()) {
     eventSel.add(new Option(name, name));
   }
   for (const name of [...new Set(photos.flatMap((p) => p.tags))].sort()) {
