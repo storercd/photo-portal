@@ -87,6 +87,7 @@ async function showCollection() {
     await fetch(`${base}/collections/${encodeURIComponent(slug)}.json`, { cache: "no-cache" })
   ).json();
   photos = data.photos;
+  for (const p of photos) p.event ||= "NO EVENT";
   document.title = data.title;
   document.getElementById("title").textContent = data.title;
   for (const name of [...new Set(photos.map((p) => p.event).filter(Boolean))]) {
