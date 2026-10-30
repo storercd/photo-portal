@@ -9,7 +9,8 @@
 
 ## Hosting
 - [x] Cloudflare account, R2 bucket + CORS, Pages deploy, test upload (`soafest-sample`, 45 photos).
-- [ ] Custom domain / DNS when ready: add to the R2 bucket (replaces r2.dev URL; update `site/config.js` and CORS) and to the Pages project.
+- [x] R2 bucket on `photos.chrisstorerphoto.com`.
+- [ ] Add `chrisstorerphoto.com` as a custom domain on the Pages project.
 - [ ] Optionally connect the GitHub repo to Pages for auto-deploys (output dir `site`).
 - [x] EHS Cheer 2026 and EHS Volleyball 2026 synced and deployed (re-run sync as the re-export adds photos).
 - [x] Test collections deleted; `python sync.py --prune` cleans R2 (run after the final sync to clear old hashes).

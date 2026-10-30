@@ -140,3 +140,54 @@ h1 a {
     flex-basis: 100%;
   }
 }
+.about {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.about-photo {
+  flex: 1 1 320px;
+  min-width: 0;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: 8px;
+}
+.about-text {
+  flex: 1 1 320px;
+  line-height: 1.5;
+}
+.link {
+  color: #9cf;
+}
+.site-footer {
+  padding: 1.5rem;
+  text-align: center;
+}
+#contact-form {
+  display: grid;
+  gap: 0.75rem;
+}
+#contact-form label {
+  display: grid;
+  gap: 0.25rem;
+}
+#contact-form textarea {
+  padding: 0.4rem 0.6rem;
+  background: #222;
+  color: inherit;
+  border: 1px solid #444;
+  border-radius: 6px;
+  font: inherit;
+}
+#contact-form button {
+  justify-self: start;
+  padding: 0.5rem 1.2rem;
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+}
