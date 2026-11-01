@@ -1,7 +1,12 @@
 {
   "title": "EHS Cheer 2026",
+  "private": true,
   "min_rating": 3,
   "rules": [
-    {"project": "EHS Cheer 2026", "start": "2026-06-12", "end": "2026-10-30"}
+    {
+      "project": "EHS Cheer 2026",
+      "start": "2026-06-12",
+      "end": "2026-10-30"
+    }
   ]
 }

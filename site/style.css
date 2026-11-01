@@ -236,11 +236,13 @@ h1 a {
   font-size: 0.9rem;
   border-top: 1px solid var(--border);
 }
-#contact-form {
+#contact-form,
+#private-form {
   display: grid;
   gap: 0.75rem;
 }
-#contact-form label {
+#contact-form label,
+#private-form label {
   display: grid;
   gap: 0.25rem;
 }
@@ -252,7 +254,8 @@ h1 a {
   border-radius: 6px;
   font: inherit;
 }
-#contact-form button {
+#contact-form button,
+#private-form button {
   justify-self: start;
   padding: 0.5rem 1.2rem;
   background: #2a2a2a;
@@ -267,4 +270,11 @@ h1 a {
 #contact-form button:hover {
   background: #343434;
   border-color: var(--accent);
+}
+
+.private {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 1rem;
+  line-height: 1.5;
 }

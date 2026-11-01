@@ -14,6 +14,7 @@ Usage:
     python sync.py ehs-volleyball sounds-of-africa   # upload to R2
     python sync.py --all
     python sync.py --prune --dry-run             # report R2 cleanup; drop --dry-run to delete
+A collection with "private": true goes to the private bucket under <slug>/ instead.
 Source folder: --source, or $PHOTO_SOURCE.
 """
 
@@ -99,6 +100,10 @@ def photo_date(img, path):
         except ValueError:
             pass
     return datetime.fromtimestamp(path.stat().st_mtime)
+
+
+def all_slugs():
+    return sorted(p.stem for p in COLLECTIONS_DIR.glob("*.json"))
 
 
 def load_collection(slug):
@@ -202,18 +207,33 @@ class LocalStore:
 
 
 class R2Store:
-    def __init__(self):
+    """The public bucket, or (with private_slug) the <slug>/ folder of the private bucket.
+
+    Keys passed in and kept in self.keys are relative to that folder.
+    """
+
+    def __init__(self, private_slug=None):
         import boto3
 
-        for var in ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"):
-            if not os.environ.get(var):
-                sys.exit(f"Missing environment variable {var} (see README)")
-        self.bucket = os.environ["R2_BUCKET"]
+        env = os.environ.get
+        self.prefix = f"{private_slug}/" if private_slug else ""
+        if private_slug:
+            self.bucket = env("R2_PRIVATE_BUCKET") or "photo-portal-private"
+            key_id = env("R2_PRIVATE_ACCESS_KEY_ID") or env("R2_ACCESS_KEY_ID")
+            secret = env("R2_PRIVATE_SECRET_ACCESS_KEY") or env("R2_SECRET_ACCESS_KEY")
+        else:
+            self.bucket, key_id, secret = (
+                env("R2_BUCKET"),
+                env("R2_ACCESS_KEY_ID"),
+                env("R2_SECRET_ACCESS_KEY"),
+            )
+        if not (env("R2_ACCOUNT_ID") and self.bucket and key_id and secret):
+            sys.exit("Missing R2_* environment variables (see README)")
         self.s3 = boto3.client(
             "s3",
-            endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
-            aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+            endpoint_url=f"https://{env('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com",
+            aws_access_key_id=key_id,
+            aws_secret_access_key=secret,
             region_name="auto",
         )
 
@@ -221,12 +241,13 @@ class R2Store:
         """List existing photo keys once instead of one HEAD request per file."""
         self.keys, self.sizes = set(), {}
         for page in self.s3.get_paginator("list_objects_v2").paginate(
-            Bucket=self.bucket, Prefix="photos/"
+            Bucket=self.bucket, Prefix=f"{self.prefix}photos/"
         ):
             for o in page.get("Contents", []):
-                self.keys.add(o["Key"])
-                self.sizes[o["Key"]] = o["Size"]
-        print(f"{len(self.keys)} files already in R2")
+                key = o["Key"].removeprefix(self.prefix)
+                self.keys.add(key)
+                self.sizes[key] = o["Size"]
+        print(f"{len(self.keys)} files already in {self.bucket}/{self.prefix}")
 
     def exists(self, key):
         return key in self.keys
@@ -235,7 +256,8 @@ class R2Store:
         for i in range(0, len(keys), 1000):
             batch = keys[i : i + 1000]
             self.s3.delete_objects(
-                Bucket=self.bucket, Delete={"Objects": [{"Key": k} for k in batch], "Quiet": True}
+                Bucket=self.bucket,
+                Delete={"Objects": [{"Key": self.prefix + k} for k in batch], "Quiet": True},
             )
             self.keys.difference_update(batch)
 
@@ -243,7 +265,7 @@ class R2Store:
         from botocore.exceptions import ClientError
 
         try:
-            return self.s3.get_object(Bucket=self.bucket, Key=key)["Body"].read()
+            return self.s3.get_object(Bucket=self.bucket, Key=self.prefix + key)["Body"].read()
         except ClientError:
             return None
 
@@ -251,7 +273,7 @@ class R2Store:
         extra = {"ContentDisposition": disposition} if disposition else {}
         self.s3.put_object(
             Bucket=self.bucket,
-            Key=key,
+            Key=self.prefix + key,
             Body=body,
             ContentType=content_type,
             CacheControl=cache_control,
@@ -358,7 +380,7 @@ def prune(store, dry_run):
     """
     store.load_keys()
     index = json.loads(store.get("collections.json") or '{"collections": []}')
-    local = {p.stem for p in COLLECTIONS_DIR.glob("*.json")}
+    local = {s for s in all_slugs() if not load_collection(s).get("private")}
     keep = [c for c in index["collections"] if c["slug"] in local]
     for c in index["collections"]:
         if c["slug"] not in local:
@@ -388,6 +410,24 @@ def prune(store, dry_run):
     print("done")
 
 
+def prune_private(slug, dry_run):
+    """Delete photos in a private collection's folder that its collection.json no longer uses."""
+    store = R2Store(private_slug=slug)
+    store.load_keys()
+    data = json.loads(store.get("collection.json") or '{"photos": []}')
+    referenced = {
+        photo[k]
+        for photo in data["photos"]
+        for k in ("thumb", "med", "web", "full")
+        if photo.get(k)
+    }
+    stale = sorted(k for k in store.keys if k not in referenced)
+    size = sum(store.sizes[k] for k in stale)
+    print(f"{slug}: {len(stale)} unreferenced files ({size / 1e6:.1f} MB)")
+    if not dry_run:
+        store.delete(stale)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("collections", nargs="*", help="collection slugs (files in sync/collections)")
@@ -404,9 +444,12 @@ def main():
 
     if args.prune:
         prune(R2Store(), args.dry_run)
+        for slug in all_slugs():
+            if load_collection(slug).get("private"):
+                prune_private(slug, args.dry_run)
         return
 
-    slugs = sorted(p.stem for p in COLLECTIONS_DIR.glob("*.json")) if args.all else args.collections
+    slugs = all_slugs() if args.all else args.collections
     if not slugs:
         ap.error("give collection slugs or --all")
     if not args.source:
@@ -416,18 +459,36 @@ def main():
     if not files:
         sys.exit(f"No images found in {source}")
 
+    colls = [load_collection(slug) for slug in slugs]
     store = None
-    if not args.dry_run:
+    if not args.dry_run and not all(c.get("private") for c in colls):
         store = LocalStore(LOCAL_DIR) if args.local else R2Store()
         store.load_keys()
         index = json.loads(store.get("collections.json") or '{"collections": []}')
 
-    for slug in slugs:
-        coll = load_collection(slug)
-        print(f"{coll['title']} ({slug})")
-        photos, written = build_collection(coll, files, store, args.dry_run)
+    for coll in colls:
+        slug = coll["slug"]
+        print(f"{coll['title']} ({slug})" + (" [private]" if coll.get("private") else ""))
+        target = store
+        if coll.get("private") and not args.dry_run:
+            target = (
+                LocalStore(LOCAL_DIR / "private" / slug)
+                if args.local
+                else R2Store(private_slug=slug)
+            )
+            target.load_keys()
+        photos, written = build_collection(coll, files, target, args.dry_run)
         print(f"  {len(photos)} photos" + ("" if args.dry_run else f", {written} files written"))
         if args.dry_run:
+            continue
+        if coll.get("private"):
+            # Never listed in collections.json; the site opens it via the password page.
+            target.put(
+                "collection.json",
+                json.dumps({"title": coll["title"], "photos": photos}, indent=1).encode(),
+                "application/json",
+                "private, no-cache",
+            )
             continue
         store.put(
             f"collections/{slug}.json",
