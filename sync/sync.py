@@ -158,15 +158,19 @@ def save_hash_cache():
     HASH_CACHE.write_text(json.dumps(_hash_cache))
 
 
-def file_hash(path):
-    """SHA-256 prefix, cached by size and mtime so unchanged files aren't re-read."""
+def file_info(path):
+    """(hash, width, height), cached by size and mtime so unchanged files aren't re-read."""
     st = path.stat()
     hit = _hash_cache.get(path.name)
-    if hit and hit[0] == st.st_size and hit[1] == st.st_mtime_ns:
-        return hit[2]
+    if hit and len(hit) == 5 and hit[0] == st.st_size and hit[1] == st.st_mtime_ns:
+        return hit[2], hit[3], hit[4]
     digest = _file_hash(path)
-    _hash_cache[path.name] = [st.st_size, st.st_mtime_ns, digest]
-    return digest
+    with Image.open(path) as im:
+        width, height = im.size
+        if im.getexif().get(ExifTags.Base.Orientation) in (5, 6, 7, 8):
+            width, height = height, width
+    _hash_cache[path.name] = [st.st_size, st.st_mtime_ns, digest, width, height]
+    return digest, width, height
 
 
 def _file_hash(path):
@@ -293,31 +297,31 @@ def build_collection(coll, files, store, dry_run):
         rule = match(coll, p.name, date, rating, keywords)
         if rule is None:
             continue
-        with Image.open(p) as raw:
-            event = event_name(rule, keywords)
-            # The hash in the key means edited photos get new URLs (no stale caches).
-            pid = f"{p.stem}-{file_hash(p)}"
-            keys = {k: f"photos/{k}/{pid}.jpg" for k in SIZES}
-            if coll.get("download"):
-                keys["full"] = f"photos/full/{pid}{p.suffix.lower()}"
-            img = ImageOps.exif_transpose(raw)
-            width, height = img.size
-            if dry_run:
-                print(f"  {p.name}  {date:%Y-%m-%d} rating={rating} event={event or '-'}")
-            else:
-                todo = [(k, v) for k, v in keys.items() if not store.exists(v)]
-                if todo:
+        event = event_name(rule, keywords)
+        digest, width, height = file_info(p)
+        # The hash in the key means edited photos get new URLs (no stale caches).
+        pid = f"{p.stem}-{digest}"
+        keys = {k: f"photos/{k}/{pid}.jpg" for k in SIZES}
+        if coll.get("download"):
+            keys["full"] = f"photos/full/{pid}{p.suffix.lower()}"
+        if dry_run:
+            print(f"  {p.name}  {date:%Y-%m-%d} rating={rating} event={event or '-'}")
+        else:
+            todo = [(k, v) for k, v in keys.items() if not store.exists(v)]
+            if todo:
+                with Image.open(p) as raw:
+                    img = ImageOps.exif_transpose(raw)
                     img.load()  # decode once; threads share the pixels
                     with ThreadPoolExecutor(len(todo)) as pool:
                         list(pool.map(partial(upload, store, p, img), todo))
-                    written += len(todo)
-                done = len(photos) + 1
-                if done % 10 == 0:
-                    pct = done * 100 // max(total, 1)
-                    print(
-                        f"  ... {done}/{total} photos processed ({pct}%), {written} files uploaded",
-                        flush=True,
-                    )
+                written += len(todo)
+            done = len(photos) + 1
+            if done % 10 == 0:
+                pct = done * 100 // max(total, 1)
+                print(
+                    f"  ... {done}/{total} photos processed ({pct}%), {written} files uploaded",
+                    flush=True,
+                )
         photos.append(
             {
                 "id": pid,
