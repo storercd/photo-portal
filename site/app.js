@@ -33,6 +33,8 @@ function render() {
     ...shown.map((p, i) => {
       const img = document.createElement("img");
       img.loading = "lazy";
+      img.classList.add("pending");
+      img.onload = img.onerror = () => img.classList.remove("pending");
       img.style.setProperty("--ar", p.width / p.height);
       img.src = `${base}/${p.thumb}`;
       img.alt = p.title;
