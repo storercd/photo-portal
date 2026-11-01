@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Private collections</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1><a href="./">Photos</a></h1>
+  </header>
+  <main class="private">
+    <h2>Private collections</h2>
+    <p>Enter the password you were given to open your collection.</p>
+    <form id="private-form">
+      <label>Password <input name="password" type="password" required maxlength="200" autocomplete="current-password"></label>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAAFsLxm1Yb8xFKD0n"></div>
+      <button type="submit">Open</button>
+      <p id="private-status" role="status"></p>
+    </form>
+  </main>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script type="module" src="private.js"></script>
+</body>
+</html>

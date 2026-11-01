@@ -1,8 +1,14 @@
 import PhotoSwipeLightbox from "./vendor/photoswipe/photoswipe-lightbox.esm.min.js";
 
 const params = new URLSearchParams(location.search);
-const base = params.has("local") ? "local" : window.PHOTO_BASE_URL || "local";
-const slug = params.get("c");
+// ?p=<slug> opens a private collection, served by the cookie-checked /private/c/<slug> function.
+const priv = params.get("p");
+const base = priv
+  ? `/private/c/${encodeURIComponent(priv)}`
+  : params.has("local")
+    ? "local"
+    : window.PHOTO_BASE_URL || "local";
+const slug = priv || params.get("c");
 const keep = params.has("local") ? "&local" : "";
 const filters = document.querySelectorAll("header select, header input");
 const list = document.getElementById("collections");
@@ -85,9 +91,15 @@ async function showCollections() {
 }
 
 async function showCollection() {
-  const data = await (
-    await fetch(`${base}/collections/${encodeURIComponent(slug)}.json`, { cache: "no-cache" })
-  ).json();
+  const url = priv
+    ? `${base}/collection.json`
+    : `${base}/collections/${encodeURIComponent(slug)}.json`;
+  const res = await fetch(url, { cache: "no-cache" });
+  if (priv && res.status === 401) {
+    location.replace("private.html");
+    return;
+  }
+  const data = await res.json();
   photos = data.photos;
   for (const p of photos) p.event ||= "NO EVENT";
   document.title = data.title;

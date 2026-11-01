@@ -106,6 +106,15 @@ Each photo gets `thumb` (600 px, grid), `med` (1200 px) and `web` (2000 px) JPEG
 
 Clicking a photo opens [PhotoSwipe](https://photoswipe.com) 5.4.4 (MIT, vendored in `site/vendor/photoswipe/`), for desktop and phones alike: swipe or arrow keys to move, pinch/double-tap to zoom, X / Esc / swipe-down to close, and the phone's Back button closes the viewer and returns to the thumbnails. The ⓘ button (or `i`) opens a panel with title, event, date, rating, and Download (2000 px) and Share buttons. Share uses the phone's share sheet (including "Save Image" on iOS) when the browser supports sharing files. Downloads are fetched by the page and saved as a blob, since cross-origin `download` links don't work with the R2 domain.
 
+## Private collections
+
+Password-protected collections live in a second, non-public R2 bucket (`photo-portal-private`) and are served only by the Pages Function `functions/private/c/[slug]/[[path]].js` (R2 binding `PRIVATE_BUCKET`). The home page footer links to `private.html`; entering a password posts to `functions/private/login.js` (Turnstile-checked), which sets an HttpOnly signed cookie for the matching collection and the page opens `./?p=<slug>`. A password maps straight to one collection, so no list of private collections is ever shown.
+
+- **Bucket layout:** every object is under `<slug>/`, and the collection file is `<slug>/collection.json` (photo keys inside it are relative to `<slug>/`).
+- **Secrets** (`npx wrangler pages secret put NAME --project-name photo-portal`): `PRIVATE_COOKIE_SECRET` (any long random string; rotating it logs everyone out) and `PRIVATE_PASSWORDS` (JSON mapping slug to password hash). `TURNSTILE_SECRET` is shared with the contact form.
+- **Add or change a password:** `node scripts/hash-password.mjs <slug>` prints `{"<slug>":"pbkdf2$..."}`; merge the entries for all private collections into one JSON object and store it as `PRIVATE_PASSWORDS`. Cookies last 7 days.
+- **Local test:** `npx wrangler pages dev site --r2 PRIVATE_BUCKET=photo-portal-private -b TURNSTILE_SECRET=1x0000000000000000000000000000000AA -b PRIVATE_COOKIE_SECRET=x -b 'PRIVATE_PASSWORDS={...}'` (the Turnstile test secret accepts any token; use the matching test site key `1x00000000000000000000AA` in `private.html` for the browser).
+
 ## Contact form
 
 `site/about.html` posts to `functions/api/contact.js` (a Pages Function), which checks Cloudflare Turnstile and emails the message through [Resend](https://resend.com).
