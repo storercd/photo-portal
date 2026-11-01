@@ -159,7 +159,7 @@ def save_hash_cache():
 
 
 def file_info(path):
-    """(hash, width, height), cached by size and mtime so unchanged files aren't re-read or decoded."""
+    """(hash, width, height), cached by size and mtime so unchanged files aren't re-read."""
     st = path.stat()
     hit = _hash_cache.get(path.name)
     if hit and len(hit) == 5 and hit[0] == st.st_size and hit[1] == st.st_mtime_ns:
