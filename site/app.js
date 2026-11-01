@@ -117,7 +117,11 @@ async function showCollection() {
   render();
 }
 
-eventSel.onchange = tagSel.onchange = ratingSel.onchange = search.oninput = render;
+tagSel.onchange = ratingSel.onchange = search.oninput = render;
+eventSel.onchange = () => {
+  render();
+  scrollTo(0, 0);
+};
 const pswpModule = () => import("./vendor/photoswipe/photoswipe.esm.min.js");
 const viewer = new PhotoSwipeLightbox({
   dataSource: items,
