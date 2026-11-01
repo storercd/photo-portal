@@ -11,8 +11,8 @@ if (!slug || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(slug)) {
 const rl = createInterface({ input: process.stdin, output: process.stderr });
 const password = await rl.question(`Password for ${slug}: `);
 rl.close();
-if (password.length < 8) {
-  console.error("Use at least 8 characters.");
+if (password.length < 7) {
+  console.error("Use at least 7 characters.");
   process.exit(1);
 }
 console.log(JSON.stringify({ [slug]: await hashPassword(password) }));
