@@ -1,0 +1,4 @@
+/galleries/private /private-login 200
+/galleries/private/:slug /galleries 200
+/galleries/:slug /galleries 200
+/private /galleries/private 301

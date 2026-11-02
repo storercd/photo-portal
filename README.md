@@ -26,7 +26,7 @@ sync/   sync.py: select photos by collection, resize + upload to R2, build colle
 
 ## Collections
 
-A collection is a JSON file in `sync/collections/` and becomes one page (`?c=<slug>`); the site's home page lists them. Photos are only uploaded if some collection selects them.
+A collection is a JSON file in `sync/collections/` and becomes one page (`/galleries/<slug>`, rewritten to `galleries.html` by `site/_redirects`); `/galleries` lists them and `/` redirects there (legacy `?c=<slug>` links still work). Photos are only uploaded if some collection selects them.
 
 ```json
 {
@@ -55,7 +55,7 @@ export PHOTO_SOURCE=~/working/camera/edits
 cd sync
 python sync.py my-collection --dry-run     # list matches
 python sync.py my-collection --local       # build into site/local (git-ignored)
-python3 -m http.server -d ../site 8123     # open http://localhost:8123/?local
+(cd .. && npx wrangler pages dev site)     # open http://localhost:8788/galleries?local (a plain static server lacks the /galleries/<slug> rewrite)
 ```
 
 ## Syncing to R2
@@ -110,13 +110,13 @@ Clicking a photo opens [PhotoSwipe](https://photoswipe.com) 5.4.4 (MIT, vendored
 
 ## Private collections
 
-Password-protected collections live in a second, non-public R2 bucket (`photo-portal-private`) and are served only by the Pages Function `functions/private/c/[slug]/[[path]].js` (R2 binding `PRIVATE_BUCKET`). The home page footer links to `private.html`; entering a password posts to `functions/private/login.js` (Turnstile-checked), which sets an HttpOnly signed cookie for the matching collection and the page opens `./?p=<slug>`. A password maps straight to one collection, so no list of private collections is ever shown.
+Password-protected collections live in a second, non-public R2 bucket (`photo-portal-private`) and are served only by the Pages Function `functions/private/c/[slug]/[[path]].js` (R2 binding `PRIVATE_BUCKET`). The home page footer links to `/galleries/private`; entering a password posts to `functions/private/login.js` (Turnstile-checked), which sets an HttpOnly signed cookie for the matching collection and the page opens `/galleries/private/<slug>`. A password maps straight to one collection, so no list of private collections is ever shown.
 
 - **Making a collection private:** add `"private": true` to its file in `sync/collections/` (slug = file name, lowercase letters/digits/`-`) and run `python sync.py <slug>`. It uploads to the private bucket under `<slug>/` and is never added to `collections.json`. The sync credentials need write access to the private bucket: either one token covering both buckets, or `R2_PRIVATE_ACCESS_KEY_ID` / `R2_PRIVATE_SECRET_ACCESS_KEY` (and optionally `R2_PRIVATE_BUCKET`, default `photo-portal-private`) in `.env`. A collection that was public stays on the public bucket until `python sync.py --prune` removes it; `--prune` also cleans unreferenced files in private folders. `--local` writes private collections to `site/local/private/<slug>/`.
 - **Bucket layout:** every object is under `<slug>/`, and the collection file is `<slug>/collection.json` (photo keys inside it are relative to `<slug>/`).
 - **Secrets** (`npx wrangler pages secret put NAME --project-name photo-portal`): `PRIVATE_COOKIE_SECRET` (any long random string; rotating it logs everyone out) and `PRIVATE_PASSWORDS` (JSON mapping slug to password hash). `TURNSTILE_SECRET` is shared with the contact form.
 - **Add or change a password:** `node scripts/hash-password.mjs <slug>` prints `{"<slug>":"pbkdf2$..."}`; merge the entries for all private collections into one JSON object and store it as `PRIVATE_PASSWORDS`. Cookies last 7 days.
-- **Local test:** `npx wrangler pages dev site --r2 PRIVATE_BUCKET=photo-portal-private -b TURNSTILE_SECRET=1x0000000000000000000000000000000AA -b PRIVATE_COOKIE_SECRET=x -b 'PRIVATE_PASSWORDS={...}'` (the Turnstile test secret accepts any token; use the matching test site key `1x00000000000000000000AA` in `private.html` for the browser).
+- **Local test:** `npx wrangler pages dev site --r2 PRIVATE_BUCKET=photo-portal-private -b TURNSTILE_SECRET=1x0000000000000000000000000000000AA -b PRIVATE_COOKIE_SECRET=x -b 'PRIVATE_PASSWORDS={...}'` (the Turnstile test secret accepts any token; use the matching test site key `1x00000000000000000000AA` in `/galleries/private` for the browser).
 
 ## Contact form
 

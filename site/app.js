@@ -1,18 +1,21 @@
 import PhotoSwipeLightbox from "./vendor/photoswipe/photoswipe-lightbox.esm.min.js";
 
 const params = new URLSearchParams(location.search);
-// ?p=<slug> opens a private collection, served by the cookie-checked /private/c/<slug> function.
-const priv = params.get("p");
+// Private collections are served by the cookie-checked /private/c/<slug> function.
+const seg = location.pathname.split("/").map(decodeURIComponent);
+// /galleries/private/<slug> (or legacy ?p=<slug>) opens a private collection.
+const priv = (seg[2] === "private" ? seg[3] : params.get("p")) || null;
+// /galleries/<slug> opens a public collection; /galleries lists them.
+const slug = priv || seg[2] || params.get("c");
 const base = priv
   ? `/private/c/${encodeURIComponent(priv)}`
   : params.has("local")
-    ? "local"
-    : window.PHOTO_BASE_URL || "local";
-const slug = priv || params.get("c");
-const keep = params.has("local") ? "&local" : "";
+    ? "/local"
+    : window.PHOTO_BASE_URL || "/local";
+const keep = params.has("local") ? "?local" : "";
 const filters = document.querySelectorAll("header select, header input");
 const list = document.getElementById("collections");
-document.getElementById("title").href = keep ? "./?local" : "./";
+document.getElementById("title").href = `/galleries${keep}`;
 const grid = document.getElementById("grid");
 const sessionSel = document.getElementById("session");
 const keywordSel = document.getElementById("keyword");
@@ -80,7 +83,7 @@ async function showCollections() {
   list.replaceChildren(
     ...collections.map((c) => {
       const a = document.createElement("a");
-      a.href = `?c=${encodeURIComponent(c.slug)}${keep}`;
+      a.href = `/galleries/${encodeURIComponent(c.slug)}${keep}`;
       const img = c.cover ? `<img src="${base}/${c.cover}" alt="">` : "";
       a.innerHTML = `${img}<div><strong></strong><br><small></small></div>`;
       a.querySelector("strong").textContent = c.title;
@@ -96,7 +99,7 @@ async function showCollection() {
     : `${base}/collections/${encodeURIComponent(slug)}.json`;
   const res = await fetch(url, { cache: "no-cache" });
   if (priv && res.status === 401) {
-    location.replace("private.html");
+    location.replace("/galleries/private");
     return;
   }
   const data = await res.json();
