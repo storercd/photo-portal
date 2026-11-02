@@ -14,8 +14,8 @@ const filters = document.querySelectorAll("header select, header input");
 const list = document.getElementById("collections");
 document.getElementById("title").href = keep ? "./?local" : "./";
 const grid = document.getElementById("grid");
-const eventSel = document.getElementById("event");
-const tagSel = document.getElementById("tag");
+const sessionSel = document.getElementById("session");
+const keywordSel = document.getElementById("keyword");
 const ratingSel = document.getElementById("rating");
 const search = document.getElementById("search");
 
@@ -24,16 +24,16 @@ let shown = [];
 let items = [];
 
 function render() {
-  const ev = eventSel.value;
-  const tag = tagSel.value;
+  const ses = sessionSel.value;
+  const keyword = keywordSel.value;
   const minRating = +ratingSel.value;
   const q = search.value.trim().toLowerCase();
   shown = photos.filter(
     (p) =>
-      (!ev || p.event === ev) &&
-      (!tag || p.tags.includes(tag)) &&
+      (!ses || p.session === ses) &&
+      (!keyword || p.keywords.includes(keyword)) &&
       p.rating >= minRating &&
-      (!q || `${p.title} ${p.event} ${p.tags.join(" ")}`.toLowerCase().includes(q)),
+      (!q || `${p.title} ${p.session} ${p.keywords.join(" ")}`.toLowerCase().includes(q)),
   );
   grid.replaceChildren(
     ...shown.map((p, i) => {
@@ -44,7 +44,7 @@ function render() {
       img.style.setProperty("--ar", p.width / p.height);
       img.src = `${base}/${p.thumb}`;
       img.alt = p.title;
-      img.title = `${p.event} · ${p.date} · ${"★".repeat(p.rating)}`;
+      img.title = `${p.session} · ${p.date} · ${"★".repeat(p.rating)}`;
       img.onclick = () => openViewer(i);
       return img;
     }),
@@ -64,8 +64,8 @@ function render() {
   });
   viewer.options.dataSource = items;
   const hash = new URLSearchParams();
-  if (ev) hash.set("event", ev);
-  if (tag) hash.set("tag", tag);
+  if (ses) hash.set("session", ses);
+  if (keyword) hash.set("keyword", keyword);
   if (minRating) hash.set("rating", minRating);
   history.replaceState(null, "", location.search + (hash.size ? `#${hash}` : ""));
 }
@@ -101,24 +101,28 @@ async function showCollection() {
   }
   const data = await res.json();
   photos = data.photos;
-  for (const p of photos) p.event ||= "NO EVENT";
+  for (const p of photos) {
+    // Data synced before the rename uses "event" and "tags".
+    p.session ||= p.event || "NO SESSION";
+    p.keywords ||= p.tags || [];
+  }
   document.title = data.title;
   document.getElementById("title").textContent = data.title;
-  for (const name of [...new Set(photos.map((p) => p.event).filter(Boolean))].reverse()) {
-    eventSel.add(new Option(name, name));
+  for (const name of [...new Set(photos.map((p) => p.session).filter(Boolean))].reverse()) {
+    sessionSel.add(new Option(name, name));
   }
-  for (const name of [...new Set(photos.flatMap((p) => p.tags))].sort()) {
-    tagSel.add(new Option(name, name));
+  for (const name of [...new Set(photos.flatMap((p) => p.keywords))].sort()) {
+    keywordSel.add(new Option(name, name));
   }
   const h = new URLSearchParams(location.hash.slice(1));
-  eventSel.value = h.get("event") || "";
-  tagSel.value = h.get("tag") || "";
+  sessionSel.value = h.get("session") || h.get("event") || "";
+  keywordSel.value = h.get("keyword") || h.get("tag") || "";
   ratingSel.value = h.get("rating") || "0";
   render();
 }
 
-tagSel.onchange = ratingSel.onchange = search.oninput = render;
-eventSel.onchange = () => {
+keywordSel.onchange = ratingSel.onchange = search.oninput = render;
+sessionSel.onchange = () => {
   render();
   scrollTo(0, 0);
 };
@@ -190,7 +194,12 @@ viewer.on("uiRegister", () => {
       pswp.on("change", () => {
         const p = photo();
         el.querySelector("strong").textContent = p.title;
-        el.querySelector(".meta").textContent = [p.event, p.date, "★".repeat(p.rating), ...p.tags]
+        el.querySelector(".meta").textContent = [
+          p.session,
+          p.date,
+          "★".repeat(p.rating),
+          ...p.keywords,
+        ]
           .filter(Boolean)
           .join(" · ");
         full.hidden = !p.full;

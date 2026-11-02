@@ -2,7 +2,7 @@
 
 ## Tagging (for the pages I want to host)
 - [ ] Decide which collections to host first (EHS Volleyball, college volleyball, ...).
-- [ ] Define a consistent keyword scheme (existing `Key: Value` style: `Event:`, `Team:`, `Sport:`, `League:`, `Location:`).
+- [ ] Define a consistent keyword scheme (existing `Key: Value` style: `Session:`, `Team:`, `Sport:`, `League:`, `Location:`).
 - [ ] Tag only the photos those collections need (about 78% of edits have no keywords); until then use date ranges or filename rules in `sync/collections/`.
 - [ ] Later, larger task: fix tagging across the whole library and re-export.
 - SOAFEST 4.0 is already well tagged and works as a collection today.

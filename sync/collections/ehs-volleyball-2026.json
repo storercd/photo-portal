@@ -1,7 +1,18 @@
 {
   "title": "EHS Volleyball 2026",
   "min_rating": 3,
+  "include_keywords": [
+  ],
+  "exclude_keywords": [
+    "Task: *",
+    "Date: *",
+    "My Selections"
+  ],
   "rules": [
-    {"project": "EHS Volleyball 2026", "start": "2026-09-03", "end": "2026-11-03"}
+    {
+      "project": "EHS Volleyball 2026",
+      "start": "2026-09-03",
+      "end": "2026-11-03"
+    }
   ]
 }
