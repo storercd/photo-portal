@@ -26,7 +26,7 @@ sync/   sync.py: select photos by collection, resize + upload to R2, build colle
 
 ## Collections
 
-A collection is a JSON file in `sync/collections/` and becomes one page (`/galleries/<slug>`, rewritten to `galleries/index.html` by `site/_redirects`); `/galleries` lists them and `/` redirects there (legacy `?c=<slug>` links still work). Photos are only uploaded if some collection selects them.
+A collection is a JSON file in `sync/collections/` and becomes one page (`/galleries/<slug>`, rewritten to `galleries.html` by `site/_redirects`); `/galleries` lists them and `/` redirects there (legacy `?c=<slug>` links still work). Photos are only uploaded if some collection selects them.
 
 ```json
 {
