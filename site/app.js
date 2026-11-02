@@ -1,10 +1,12 @@
 import PhotoSwipeLightbox from "./vendor/photoswipe/photoswipe-lightbox.esm.min.js";
 
 const params = new URLSearchParams(location.search);
-// ?p=<slug> opens a private collection, served by the cookie-checked /private/c/<slug> function.
-const priv = params.get("p");
+// Private collections are served by the cookie-checked /private/c/<slug> function.
+const seg = location.pathname.split("/").map(decodeURIComponent);
+// /galleries/private/<slug> (or legacy ?p=<slug>) opens a private collection.
+const priv = (seg[2] === "private" ? seg[3] : params.get("p")) || null;
 // /galleries/<slug> opens a public collection; /galleries lists them.
-const slug = priv || decodeURIComponent(location.pathname.split("/")[2] || "") || params.get("c");
+const slug = priv || seg[2] || params.get("c");
 const base = priv
   ? `/private/c/${encodeURIComponent(priv)}`
   : params.has("local")
@@ -97,7 +99,7 @@ async function showCollection() {
     : `${base}/collections/${encodeURIComponent(slug)}.json`;
   const res = await fetch(url, { cache: "no-cache" });
   if (priv && res.status === 401) {
-    location.replace("/private");
+    location.replace("/galleries/private");
     return;
   }
   const data = await res.json();
