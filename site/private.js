@@ -10,7 +10,7 @@ form.addEventListener("submit", async (e) => {
     const res = await fetch("/private/login", { method: "POST", body: new FormData(form) });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Could not sign in (HTTP ${res.status}).`);
-    location.assign(`./?p=${encodeURIComponent(data.slug)}`);
+    location.assign(`/galleries?p=${encodeURIComponent(data.slug)}`);
   } catch (err) {
     status.textContent = err.message;
     form.password.value = "";
