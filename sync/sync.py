@@ -6,7 +6,7 @@ photos from the source folder by date range, keywords, filename pattern and
 rating, and becomes its own page on the site.
 
 Rating, keywords and capture date come from XMP (embedded or sidecar .xmp) and
-EXIF. A keyword like "event:Round 1" or a rule's "event" field labels the event.
+EXIF. A keyword like "session:Round 1" or a rule's "session" field labels the session.
 
 Usage:
     python sync.py ehs-volleyball --dry-run      # list what would be included
@@ -45,8 +45,10 @@ NS = {
     "xmp": "http://ns.adobe.com/xap/1.0/",
     "dc": "http://purl.org/dc/elements/1.1/",
 }
-# Keywords that drive selection/events or are internal; never published as tags.
-HIDDEN_PREFIXES = ("event:", "project:", "pass:")
+# Keywords that drive selection/sessions or are internal; never published as keywords.
+# "event:" is the legacy name for "session:". First match wins.
+DEFAULT_SESSION_PREFIXES = ("session:", "event:", "performance:", "theme:")
+INTERNAL_PREFIXES = ("project:", "pass:")
 XMP_RE = re.compile(rb"<x:xmpmeta.*?</x:xmpmeta>", re.S)
 XMP_SCAN_BYTES = 1 << 20  # XMP lives near the start of the file
 HASH_CACHE = HERE / ".hash-cache.json"
@@ -128,7 +130,7 @@ def match(collection, name, date, rating, keywords):
             continue
         if "end" in rule and d > rule["end"]:
             continue
-        wanted = set(rule.get("tags", []))
+        wanted = set(rule.get("keywords", []))
         if "project" in rule:
             wanted.add(f"Project: {rule['project']}")
         if wanted and not wanted & set(keywords):
@@ -139,12 +141,64 @@ def match(collection, name, date, rating, keywords):
     return None
 
 
-def event_name(rule, keywords):
-    if rule.get("event"):
-        return rule["event"]
-    for k in keywords:
-        if k.lower().startswith("event:"):
-            return k.split(":", 1)[1].strip()
+def keyword_matches(keyword, patterns):
+    """Case-insensitive match where * in a pattern matches any text (no other wildcards)."""
+    k = keyword.lower()
+    return any(
+        re.fullmatch(".*".join(re.escape(part) for part in p.lower().split("*")), k)
+        for p in patterns
+    )
+
+
+def session_prefixes(coll):
+    """Lowercase keyword prefixes that label a photo's session, in priority order.
+
+    A collection's "session_keywords" (e.g. ["Performance:", "Theme:"]) replaces the default
+    list; "session:" is always recognised first.
+    """
+    custom = [p.strip().lower() for p in coll.get("session_keywords", [])]
+    custom = [p if p.endswith(":") else p + ":" for p in custom]
+    if not custom:
+        return DEFAULT_SESSION_PREFIXES
+    return ("session:", *[p for p in custom if p != "session:"])
+
+
+def hidden_prefixes(coll):
+    return session_prefixes(coll) + INTERNAL_PREFIXES
+
+
+def unaccounted_keywords(coll, files):
+    """Map each keyword on a selected photo that is neither included nor excluded to its files.
+
+    Session keywords (see session_prefixes), Project:, Pass: and rule keywords are always
+    accounted for; everything else must match include_keywords or exclude_keywords.
+    """
+    known = list(coll.get("include_keywords", [])) + list(coll.get("exclude_keywords", []))
+    for rule in coll["rules"]:
+        known += rule.get("keywords", [])
+    hidden = hidden_prefixes(coll)
+    bad = {}
+    for p in files:
+        try:
+            rating, keywords = read_xmp(p)
+            date = photo_date(None, p)
+        except FileNotFoundError:
+            continue
+        if match(coll, p.name, date, rating, keywords) is None:
+            continue
+        for k in keywords:
+            if not k.lower().startswith(hidden) and not keyword_matches(k, known):
+                bad.setdefault(k, []).append(p.name)
+    return bad
+
+
+def session_name(coll, rule, keywords):
+    if rule.get("session"):
+        return rule["session"]
+    for prefix in session_prefixes(coll):
+        for k in keywords:
+            if k.lower().startswith(prefix):
+                return k.split(":", 1)[1].strip()
     return ""
 
 
@@ -300,6 +354,7 @@ def upload(store, path, img, item):
 
 def build_collection(coll, files, store, dry_run):
     photos, written = [], 0
+    hidden = hidden_prefixes(coll)
     total = 0
     if not dry_run:
         for p in files:  # cheap metadata-only pass so progress can show a total
@@ -319,7 +374,7 @@ def build_collection(coll, files, store, dry_run):
         rule = match(coll, p.name, date, rating, keywords)
         if rule is None:
             continue
-        event = event_name(rule, keywords)
+        session = session_name(coll, rule, keywords)
         digest, width, height = file_info(p)
         # The hash in the key means edited photos get new URLs (no stale caches).
         pid = f"{p.stem}-{digest}"
@@ -327,7 +382,7 @@ def build_collection(coll, files, store, dry_run):
         if coll.get("download"):
             keys["full"] = f"photos/full/{pid}{p.suffix.lower()}"
         if dry_run:
-            print(f"  {p.name}  {date:%Y-%m-%d} rating={rating} event={event or '-'}")
+            print(f"  {p.name}  {date:%Y-%m-%d} rating={rating} session={session or '-'}")
         else:
             todo = [(k, v) for k, v in keys.items() if not store.exists(v)]
             if todo:
@@ -348,8 +403,13 @@ def build_collection(coll, files, store, dry_run):
             {
                 "id": pid,
                 "title": p.stem,
-                "event": event,
-                "tags": [k for k in keywords if not k.lower().startswith(HIDDEN_PREFIXES)],
+                "session": session,
+                "keywords": [
+                    k
+                    for k in keywords
+                    if not k.lower().startswith(hidden)
+                    and not keyword_matches(k, coll.get("exclude_keywords", []))
+                ],
                 "rating": rating,
                 "date": date.strftime("%Y-%m-%d"),
                 "width": width,
@@ -360,11 +420,11 @@ def build_collection(coll, files, store, dry_run):
                 **({"full": keys["full"]} if "full" in keys else {}),
             }
         )
-    missing = [x["title"] for x in photos if not x["event"]]
+    missing = [x["title"] for x in photos if not x["session"]]
     if missing:
         print(
-            f"  WARNING: {len(missing)} photo(s) have no event tag "
-            f"(shown as 'NO EVENT' in the portal): {', '.join(missing[:5])}"
+            f"  WARNING: {len(missing)} photo(s) have no session keyword "
+            f"(shown as 'NO SESSION' in the portal): {', '.join(missing[:5])}"
             f"{', ...' if len(missing) > 5 else ''}",
             flush=True,
         )
@@ -460,6 +520,16 @@ def main():
         sys.exit(f"No images found in {source}")
 
     colls = [load_collection(slug) for slug in slugs]
+    failed = False
+    for coll in colls:
+        for k, names in sorted(unaccounted_keywords(coll, files).items()):
+            failed = True
+            print(
+                f"ERROR [{coll['slug']}] keyword not in include_keywords or exclude_keywords: "
+                f"{k!r} ({len(names)} photo(s), e.g. {', '.join(names[:3])})"
+            )
+    if failed:
+        sys.exit("Sync aborted: account for every keyword in the collection JSON.")
     store = None
     if not args.dry_run and not all(c.get("private") for c in colls):
         store = LocalStore(LOCAL_DIR) if args.local else R2Store()

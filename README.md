@@ -34,17 +34,19 @@ A collection is a JSON file in `sync/collections/` and becomes one page (`?c=<sl
   "min_rating": 3,
   "exclude": ["*-composite-*"],
   "rules": [
-    {"start": "2026-08-15", "end": "2026-11-15", "tags": ["Team: Everett High School"], "event": "Fall season"},
+    {"start": "2026-08-15", "end": "2026-11-15", "keywords": ["Team: Everett High School"], "session": "Fall season"},
     {"files": ["20261003_*"]}
   ]
 }
 ```
 
-- Rules are ORed; conditions inside a rule (`start`/`end`, `tags` (any of), `files` globs, `min_rating`) are ANDed.
-- `min_rating` at the top is the default for rules; `event` labels matching photos (otherwise an `Event: ...` keyword is used).
+- Rules are ORed; conditions inside a rule (`start`/`end`, `keywords` (any of), `files` globs, `min_rating`) are ANDed.
+- `min_rating` at the top is the default for rules; `session` labels matching photos (otherwise the first matching session keyword is used, see `session_keywords` below).
 - `"download": true` also uploads each original as a full-quality download (shown as an Original button in the viewer's ⓘ panel). Originals are large (about 11 MB each here), so enable it only for collections you want to offer; R2 free tier is 10 GB.
-- `"project": "EHS Volleyball 2026"` is shorthand for the tag `Project: EHS Volleyball 2026`. `Project:`, `Pass:` and `Event:` keywords are not published as filter tags; `Event:` becomes the event filter.
-- Tags are your existing keywords, e.g. `Team: ...`, `Sport: ...`, `Event: ...`.
+- `"project": "EHS Volleyball 2026"` is shorthand for the keyword `Project: EHS Volleyball 2026`. `Project:`, `Pass:` and session keywords are not published as filter keywords.
+- `session_keywords` (top level, optional) lists the keyword prefixes that label a photo's session, first match wins, e.g. `"session_keywords": ["Performance:", "Theme:"]` for Sounds of Africa. `Session:` is always recognised first. If omitted, the default is `Session:`, `Event:`, `Performance:`, `Theme:`. A prefix not listed (e.g. `Theme:` in a volleyball collection) becomes an ordinary keyword and must be in `include_keywords` or `exclude_keywords`.
+- **Every keyword must be accounted for.** `include_keywords` (published as filter keywords) and `exclude_keywords` (ignored, never published) are top-level lists of keywords, case-insensitive, where `*` matches any text, e.g. `"include_keywords": ["Team: *", "Sport: *"], "exclude_keywords": ["Task: *"]`. Before anything is uploaded, the sync checks every photo the collection selects and aborts, listing each offender, if it has a keyword that matches neither list. session keywords, `Project:`, `Pass:` and any rule `keywords` are always accounted for.
+- Keywords are your existing photo keywords, e.g. `Team: ...`, `Sport: ...`, `Session: ...`. Published collection JSON uses `session` and `keywords`; the site still reads the older `event`/`tags` fields until a collection is re-synced.
 
 ## Local preview
 
@@ -104,7 +106,7 @@ Each photo gets `thumb` (600 px, grid), `med` (1200 px) and `web` (2000 px) JPEG
 
 ## Viewer
 
-Clicking a photo opens [PhotoSwipe](https://photoswipe.com) 5.4.4 (MIT, vendored in `site/vendor/photoswipe/`), for desktop and phones alike: swipe or arrow keys to move, pinch/double-tap to zoom, X / Esc / swipe-down to close, and the phone's Back button closes the viewer and returns to the thumbnails. The ⓘ button (or `i`) opens a panel with title, event, date, rating, and Download (2000 px) and Share buttons. Share uses the phone's share sheet (including "Save Image" on iOS) when the browser supports sharing files. Downloads are fetched by the page and saved as a blob, since cross-origin `download` links don't work with the R2 domain.
+Clicking a photo opens [PhotoSwipe](https://photoswipe.com) 5.4.4 (MIT, vendored in `site/vendor/photoswipe/`), for desktop and phones alike: swipe or arrow keys to move, pinch/double-tap to zoom, X / Esc / swipe-down to close, and the phone's Back button closes the viewer and returns to the thumbnails. The ⓘ button (or `i`) opens a panel with title, session, date, rating, and Download (2000 px) and Share buttons. Share uses the phone's share sheet (including "Save Image" on iOS) when the browser supports sharing files. Downloads are fetched by the page and saved as a blob, since cross-origin `download` links don't work with the R2 domain.
 
 ## Private collections
 
