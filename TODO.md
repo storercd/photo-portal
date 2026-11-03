@@ -5,7 +5,6 @@
 - [ ] Add the other college event here.
 
 ## Hosting
-- [ ] Optionally connect the GitHub repo to Pages for auto-deploys (output dir `site`).
 - [ ] Hide list for internal tags beyond `Pass:`.  Perhaps use an explicit set of allowed tags.
 
 ## Site

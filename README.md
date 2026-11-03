@@ -23,6 +23,7 @@ sync/   sync.py: select photos by collection, resize + upload to R2, build colle
   npx wrangler pages deploy /tmp/deploy --project-name photo-portal --branch main --commit-dirty=true
   ```
   Photo data lives in R2, so syncing photos never needs a redeploy.
+- **Auto-deploy:** pushes to `main` deploy via the `deploy` job in `.github/workflows/ci.yml` (after lint passes). It needs the GitHub repo secrets `CLOUDFLARE_API_TOKEN` (Account > Cloudflare Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`. The manual commands above still work. `wrangler.toml` holds the Pages config (output dir, `PRIVATE_BUCKET` binding); secrets are not in it.
 
 ## Collections
 
@@ -128,3 +129,17 @@ Password-protected collections live in a second, non-public R2 bucket (`photo-po
 - `data-sitekey` in `about.html` is the public key of the Turnstile widget for `chrisstorerphoto.com`; its secret is `TURNSTILE_SECRET`. For local testing on `localhost`, add `localhost` to the widget's hostnames or temporarily use Cloudflare's test key `1x00000000000000000000AA` with secret `1x0000000000000000000000000000000AA`.
 - Deploy from the repo root so `functions/` is picked up: `npx wrangler pages deploy /tmp/deploy --project-name photo-portal` only uploads functions found in the current directory, so run it from here.
 - Try it locally (a plain static server has no `/api/contact`): `set -a; . ./.env; set +a; npx wrangler pages dev site -b RESEND_API_KEY="$RESEND_API_KEY" -b TURNSTILE_SECRET="$TURNSTILE_SECRET" -b CONTACT_TO="$CONTACT_TO"`, then open http://localhost:8788/about.
+
+## Rebuilding from scratch
+
+Everything but the items below is in git. Keep the secret values in a password manager (Cloudflare cannot show them again).
+
+1. **Zone/DNS:** `chrisstorerphoto.com` on Cloudflare.
+2. **R2 buckets:** `npx wrangler r2 bucket create photo-portal` and `... photo-portal-private`; attach the custom domain `photos.chrisstorerphoto.com` to `photo-portal` (dashboard); `npx wrangler r2 bucket cors set photo-portal --file sync/r2-cors.json`.
+3. **R2 API token** (Object Read & Write on both buckets) into `.env` (see Setup).
+4. **Pages project:** `npx wrangler pages project create photo-portal --production-branch main`. The `PRIVATE_BUCKET` binding comes from `wrangler.toml` on deploy.
+5. **Pages secrets** (`npx wrangler pages secret put NAME --project-name photo-portal`): `PRIVATE_COOKIE_SECRET`, `PRIVATE_PASSWORDS`, `TURNSTILE_SECRET`, `RESEND_API_KEY`, `CONTACT_TO`, and optionally `CONTACT_FROM`.
+6. **Turnstile widget** for `chrisstorerphoto.com` (its site key is in `site/about.html` and `site/private-login.html`; update both if recreated) and the **Resend** domain/API key.
+7. **Custom domain** on the Pages project (dashboard).
+8. **GitHub secrets** `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, then push to `main` to deploy.
+9. **Content:** run `python sync.py --all` (needs `PHOTO_SOURCE`; originals are not in R2, so back them up separately).
