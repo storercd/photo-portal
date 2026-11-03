@@ -13,6 +13,7 @@ Usage:
     python sync.py ehs-volleyball --local        # preview in site/local
     python sync.py ehs-volleyball sounds-of-africa   # upload to R2
     python sync.py --all
+    python sync.py --portfolio [--dry-run|--local]   # sync/portfolio.json (explicit photo lists)
     python sync.py --prune --dry-run             # report R2 cleanup; drop --dry-run to delete
 A collection with "private": true goes to the private bucket under <slug>/ instead.
 Source folder: --source, or $PHOTO_SOURCE.
@@ -37,6 +38,7 @@ from PIL import ExifTags, Image, ImageOps
 
 HERE = Path(__file__).parent
 COLLECTIONS_DIR = HERE / "collections"
+PORTFOLIO_FILE = HERE / "portfolio.json"
 LOCAL_DIR = HERE.parent / "site" / "local"
 EXTS = {".jpg", ".jpeg", ".png"}
 SIZES = {"thumb": 600, "med": 1200, "web": 2000}  # long edge in px
@@ -439,6 +441,65 @@ def build_collection(coll, files, store, dry_run):
     return photos, written
 
 
+def validate_portfolio(portfolio, files):
+    """Every filename in the manifest must exist in the source folder."""
+    by_name = {p.name: p for p in files}
+    errors, slugs = [], set()
+    for sec in portfolio["sections"]:
+        slug = sec.get("slug")
+        if not slug or not sec.get("title"):
+            errors.append(f"section needs a slug and title: {sec.get('title') or slug!r}")
+        elif slug in slugs:
+            errors.append(f"[{slug}] duplicate section slug")
+        slugs.add(slug)
+        seen = set()
+        for name in sec.get("photos", []):
+            if name not in by_name:
+                errors.append(f"[{slug}] file not found in source: {name}")
+            if name in seen:
+                errors.append(f"[{slug}] listed twice: {name}")
+            seen.add(name)
+        cover = sec.get("cover")
+        if cover and cover not in seen:
+            errors.append(f"[{slug}] cover is not one of its photos: {cover}")
+        if not seen:
+            errors.append(f"[{slug}] has no photos")
+    return errors
+
+
+def build_portfolio(portfolio, files, store, dry_run):
+    by_name = {p.name: p for p in files}
+    cache = {}  # a photo used in several sections is uploaded once
+    sections = []
+    for sec in portfolio["sections"]:
+        photos = []
+        for name in sec["photos"]:
+            p = by_name[name]
+            if name not in cache:
+                digest, width, height = file_info(p)
+                pid = f"{p.stem}-{digest}"
+                keys = {k: f"photos/{k}/{pid}.jpg" for k in SIZES}
+                if not dry_run:
+                    todo = [(k, v) for k, v in keys.items() if not store.exists(v)]
+                    if todo:
+                        with Image.open(p) as raw:
+                            img = ImageOps.exif_transpose(raw)
+                            img.load()
+                            with ThreadPoolExecutor(len(todo)) as pool:
+                                list(pool.map(partial(upload, store, p, img), todo))
+                cache[name] = {"id": pid, "title": p.stem, "width": width, "height": height, **keys}
+            photos.append(cache[name])
+        cover = next(
+            (x for x, n in zip(photos, sec["photos"], strict=True) if n == sec.get("cover")),
+            photos[0],
+        )
+        print(f"  {sec['title']} ({sec['slug']}): {len(photos)} photos")
+        sections.append(
+            {"slug": sec["slug"], "title": sec["title"], "cover": cover["med"], "photos": photos}
+        )
+    return {"sections": sections}
+
+
 def prune(store, dry_run):
     """Remove collections that no longer have a local file, then photos nothing references.
 
@@ -457,6 +518,9 @@ def prune(store, dry_run):
         data = json.loads(store.get(f"collections/{c['slug']}.json") or '{"photos": []}')
         for photo in data["photos"]:
             referenced.update(photo[k] for k in ("thumb", "med", "web", "full") if photo.get(k))
+    for sec in json.loads(store.get("portfolio.json") or '{"sections": []}')["sections"]:
+        for photo in sec["photos"]:
+            referenced.update(photo[k] for k in SIZES)
     stale = sorted(k for k in store.keys if k not in referenced)
     size = sum(store.sizes[k] for k in stale)
     print(f"{len(stale)} unreferenced photo files ({size / 1e6:.1f} MB) of {len(store.keys)}")
@@ -503,6 +567,11 @@ def main():
     ap.add_argument("--local", action="store_true", help=f"write to {LOCAL_DIR} instead of R2")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument(
+        "--portfolio",
+        action="store_true",
+        help="sync the explicit photo lists in sync/portfolio.json (fails on missing files)",
+    )
+    ap.add_argument(
         "--prune",
         action="store_true",
         help="delete R2 collections with no local file and photos no collection uses",
@@ -517,14 +586,23 @@ def main():
         return
 
     slugs = all_slugs() if args.all else args.collections
-    if not slugs:
-        ap.error("give collection slugs or --all")
+    if not slugs and not args.portfolio:
+        ap.error("give collection slugs, --all or --portfolio")
     if not args.source:
         ap.error("set --source or $PHOTO_SOURCE")
     source = Path(args.source).expanduser()
     files = sorted(p for p in source.iterdir() if p.suffix.lower() in EXTS)
     if not files:
         sys.exit(f"No images found in {source}")
+
+    portfolio = None
+    if args.portfolio:
+        portfolio = json.loads(PORTFOLIO_FILE.read_text())
+        errors = validate_portfolio(portfolio, files)
+        for e in errors:
+            print(f"ERROR {e}")
+        if errors:
+            sys.exit("Sync aborted: fix portfolio.json (nothing was uploaded).")
 
     colls = [load_collection(slug) for slug in slugs]
     failed = False
@@ -538,7 +616,7 @@ def main():
     if failed:
         sys.exit("Sync aborted: account for every keyword in the collection JSON.")
     store = None
-    if not args.dry_run and not all(c.get("private") for c in colls):
+    if not args.dry_run and (portfolio or not all(c.get("private") for c in colls)):
         store = LocalStore(LOCAL_DIR) if args.local else R2Store()
         store.load_keys()
         index = json.loads(store.get("collections.json") or '{"collections": []}')
@@ -582,15 +660,27 @@ def main():
         }
         index["collections"] = [c for c in index["collections"] if c["slug"] != slug] + [entry]
 
+    if portfolio:
+        print("Portfolio")
+        data = build_portfolio(portfolio, files, store, args.dry_run)
+        if store:
+            store.put(
+                "portfolio.json",
+                json.dumps(data, indent=1).encode(),
+                "application/json",
+                "public, max-age=60",
+            )
+
     if store:
         save_hash_cache()
-        index["collections"].sort(key=lambda c: c["title"])
-        store.put(
-            "collections.json",
-            json.dumps(index, indent=1).encode(),
-            "application/json",
-            "public, max-age=60",
-        )
+        if slugs:
+            index["collections"].sort(key=lambda c: c["title"])
+            store.put(
+                "collections.json",
+                json.dumps(index, indent=1).encode(),
+                "application/json",
+                "public, max-age=60",
+            )
         if args.local:
             print("\nPreview: python3 -m http.server -d site  ->  http://localhost:8000/?local")
 

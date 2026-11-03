@@ -401,3 +401,14 @@ header.gallery #filters {
   padding: 1rem;
   line-height: 1.5;
 }
+.site-nav {
+  font-size: 0.9rem;
+}
+.portfolio-heading {
+  margin: 1.5rem 1.25rem 1rem;
+  text-align: center;
+  font-weight: 500;
+}
+.prose h3 {
+  margin: 1.5rem 0 0.25rem;
+}
