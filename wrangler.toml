@@ -1,0 +1,8 @@
+name = "photo-portal"
+compatibility_date = "2026-11-01"
+pages_build_output_dir = "site"
+
+# Secrets are not stored here; see "Rebuilding from scratch" in README.md.
+[[r2_buckets]]
+binding = "PRIVATE_BUCKET"
+bucket_name = "photo-portal-private"
