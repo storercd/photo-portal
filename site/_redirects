@@ -2,3 +2,5 @@
 /galleries/private/:slug /galleries 200
 /galleries/:slug /galleries 200
 /private /galleries/private 301
+/portfolio/:slug /portfolio 200
+/forms /tfp#forms 301

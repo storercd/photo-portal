@@ -1,0 +1,71 @@
+{
+  "sections": [
+    {
+      "slug": "about-me",
+      "title": "About Me",
+      "photos": [
+        "20260802_CDS12351-Edit.jpg"
+      ]
+    },
+    {
+      "slug": "sports-and-action",
+      "title": "Sports and Action",
+      "photos": [
+        "AH9A0488.jpg",
+        "AH9A0520.jpg",
+        "AH9A0704.jpg",
+        "AH9A7633.jpg",
+        "AH9A9967.jpg"
+      ]
+    },
+    {
+      "slug": "wildlife-and-birds",
+      "title": "Wildlife and Birds",
+      "photos": [
+        "20260624_CDS16968.jpg",
+        "20260624_CDS17036.jpg",
+        "20260624_CDS17177.jpg",
+        "20260626_CDS19035.jpg",
+        "20260626_CDS19592.jpg",
+        "20260626_CDS19684.jpg",
+        "20260627_CDS10266.jpg",
+        "20260628_CDS10696.jpg",
+        "20260630_CDS10931.jpg",
+        "20260630_CDS11184.jpg",
+        "20260630_CDS11242.jpg",
+        "20260708_CDS13193.jpg"
+      ]
+    },
+    {
+      "slug": "conceptual-misc",
+      "title": "Conceptual / Misc",
+      "photos": [
+        "20260601_CDS10852.jpg",
+        "20260603_CDS11636.jpg",
+        "20260605_CDS12098.jpg",
+        "20260616_CDS14000-Edit.jpg",
+        "AH9A7132.jpg"
+      ]
+    },
+    {
+      "slug": "portraits-and-people",
+      "title": "Portraits and People",
+      "photos": [
+        "20260612_CDS13414.jpg",
+        "20260620_CDS14956-Edit.jpg",
+        "AH9A8184.jpg",
+        "AH9A9301-2.jpg"
+      ]
+    },
+    {
+      "slug": "landscapes-and-nature",
+      "title": "Landscapes and Nature",
+      "photos": [
+        "20260601_AH9A0800.jpg",
+        "20260622_CDS15491.jpg",
+        "20260622_CDS15579.jpg",
+        "20260625_CDS18365.jpg"
+      ]
+    }
+  ]
+}
