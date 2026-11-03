@@ -21,6 +21,45 @@ const sessionSel = document.getElementById("session");
 const keywordSel = document.getElementById("keyword");
 const ratingSel = document.getElementById("rating");
 const search = document.getElementById("search");
+const bar = document.getElementById("bar");
+const toggle = document.getElementById("filter-toggle");
+const count = document.getElementById("filter-count");
+const wrap = document.getElementById("filters-wrap");
+const panel = document.getElementById("filters");
+const mobile = matchMedia("(max-width: 600px)");
+let open = false;
+let openY = 0;
+
+// On phones the filter bar scrolls away; once it has, a sticky "Filters" button
+// brings the controls back as an overlay without moving the page.
+function syncBar() {
+  const away = mobile.matches && wrap.getBoundingClientRect().bottom < bar.offsetHeight;
+  toggle.hidden = !away;
+  const floating = away && open;
+  if (floating && !panel.classList.contains("float")) {
+    wrap.style.height = `${panel.offsetHeight}px`;
+    panel.style.setProperty("--bar-h", `${bar.offsetHeight}px`);
+  } else if (!floating) {
+    wrap.style.height = "";
+    open &&= away;
+  }
+  panel.classList.toggle("float", floating);
+  toggle.setAttribute("aria-expanded", floating);
+}
+toggle.onclick = () => {
+  open = !open;
+  openY = scrollY;
+  syncBar();
+};
+addEventListener(
+  "scroll",
+  () => {
+    if (panel.classList.contains("float") && Math.abs(scrollY - openY) > 60) open = false;
+    syncBar();
+  },
+  { passive: true },
+);
+mobile.onchange = syncBar;
 
 let photos = [];
 let shown = [];
@@ -31,6 +70,9 @@ function render() {
   const keyword = keywordSel.value;
   const minRating = +ratingSel.value;
   const q = search.value.trim().toLowerCase();
+  const active = [ses, keyword, minRating, q].filter(Boolean).length;
+  count.textContent = active;
+  count.hidden = !active;
   shown = photos.filter(
     (p) =>
       (!ses || p.session === ses) &&
@@ -78,6 +120,7 @@ async function showCollections() {
     await fetch(`${base}/collections.json`, { cache: "no-cache" })
   ).json();
   for (const el of filters) el.classList.add("hide");
+  toggle.classList.add("hide");
   grid.hidden = true;
   list.hidden = false;
   list.replaceChildren(
@@ -141,7 +184,7 @@ function openViewer(i) {
   viewer.loadAndOpen(i, items);
 }
 
-async function save(url, filename, btn) {
+async function save(url, filename, btn = {}) {
   const label = btn.textContent;
   btn.textContent = "Saving…";
   try {
@@ -180,6 +223,38 @@ viewer.on("uiRegister", () => {
     title: "Info and download (i)",
     onClick: (_e, _el, pswp) => pswp.element.classList.toggle("pswp--info"),
   });
+  const icon = (d) =>
+    `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  ui.registerElement({
+    name: "download-button",
+    order: 7,
+    isButton: true,
+    html: icon('<path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/>'),
+    title: "Download this photo",
+    onClick: (_e, _el, pswp) => {
+      const p = shown[pswp.currIndex];
+      save(`${base}/${p.web}`, `${p.title}.jpg`);
+    },
+  });
+  // Apple devices use the box-with-arrow share icon; everyone else the three connected dots.
+  const apple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+  const shareApple =
+    '<path d="M12 15V3m0 0L8 7m4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>';
+  const shareNodes =
+    '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4m0-11-6.8 4"/>';
+  if (canShareFiles) {
+    ui.registerElement({
+      name: "share-button",
+      order: 8,
+      isButton: true,
+      html: icon(apple ? shareApple : shareNodes),
+      title: "Share this photo",
+      onClick: (_e, _el, pswp) => {
+        const p = shown[pswp.currIndex];
+        share(`${base}/${p.web}`, `${p.title}.jpg`);
+      },
+    });
+  }
   ui.registerElement({
     name: "info-panel",
     order: 9,
