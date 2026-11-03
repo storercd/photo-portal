@@ -18,6 +18,7 @@ const list = document.getElementById("collections");
 document.getElementById("title").href = `/galleries${keep}`;
 const grid = document.getElementById("grid");
 const sessionSel = document.getElementById("session");
+const sessionDesc = document.getElementById("session-desc");
 const keywordSel = document.getElementById("keyword");
 const ratingSel = document.getElementById("rating");
 const search = document.getElementById("search");
@@ -62,6 +63,7 @@ addEventListener(
 mobile.onchange = syncBar;
 
 let photos = [];
+let descriptions = {};
 let shown = [];
 let items = [];
 
@@ -71,6 +73,8 @@ function render() {
   const minRating = +ratingSel.value;
   const q = search.value.trim().toLowerCase();
   const active = [ses, keyword, minRating, q].filter(Boolean).length;
+  sessionDesc.textContent = descriptions[ses] || "";
+  sessionDesc.hidden = !sessionDesc.textContent;
   count.textContent = active;
   count.hidden = !active;
   shown = photos.filter(
@@ -147,6 +151,7 @@ async function showCollection() {
   }
   const data = await res.json();
   photos = data.photos;
+  descriptions = data.session_descriptions || {};
   for (const p of photos) {
     // Data synced before the rename uses "event" and "tags".
     p.session ||= p.event || "NO SESSION";

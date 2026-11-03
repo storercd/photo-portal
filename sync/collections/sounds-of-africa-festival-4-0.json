@@ -2,6 +2,14 @@
   "title": "Sounds of Africa Festival 4.0",
   "min_rating": 3,
   "session_keywords": ["Performance:", "Theme:"],
+  "session_descriptions": {
+    "Anokye Agofomma": "Anokye Agofomma is a Ghanaian Royal Court traditional music group founded by Ghanaian Master Drummer Yaw Amponsah in Seattle, Washington. Members of the group come from all different backgrounds and are dedicated to Anokye’s mission to continue the Royal Court legacy of the traditional drumming and dance of the Asante people.",
+    "Special Force Band": "SPECIAL FORCE is a reggae band with veteran Jamaican vocalist Hainzle Augustus Malcolm, a.k.a. Selassie I Soldier at the helm. SPECIAL FORCE features an arsenal of rock solid musicians that play classic reggae treasures and original compositions that inspire their audience to sing, dance and feel that groove in the rhythm of the moment.",
+    "Photographers/Volunteers": "I always enjoy the opportunity to capture other photographers at work, and the other fabulous volunteers who came together to help make this event as amazing as it was!",
+    "Speakers": "Various speakers during the festival, including but not limited to:\nEverett City Council President Don Schwab\nRepresentative Strom Peterson\nRepresentative Brandy Donaghy\nRepresentative April Berg",
+    "Vendors and Spectators": "Photos of the vendor tents, attendees, and other minor moments.",
+    "General": "Various festival activities and smaller moments."
+  },
   "include_keywords": [
   ],
   "exclude_keywords": [

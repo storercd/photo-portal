@@ -202,6 +202,13 @@ def session_name(coll, rule, keywords):
     return ""
 
 
+def collection_data(coll, photos):
+    data = {"title": coll["title"], "photos": photos}
+    if coll.get("session_descriptions"):
+        data["session_descriptions"] = coll["session_descriptions"]
+    return data
+
+
 def resized(img, long_edge):
     img = img.copy()
     img.thumbnail((long_edge, long_edge))
@@ -555,14 +562,14 @@ def main():
             # Never listed in collections.json; the site opens it via the password page.
             target.put(
                 "collection.json",
-                json.dumps({"title": coll["title"], "photos": photos}, indent=1).encode(),
+                json.dumps(collection_data(coll, photos), indent=1).encode(),
                 "application/json",
                 "private, no-cache",
             )
             continue
         store.put(
             f"collections/{slug}.json",
-            json.dumps({"title": coll["title"], "photos": photos}, indent=1).encode(),
+            json.dumps(collection_data(coll, photos), indent=1).encode(),
             "application/json",
             "public, max-age=60",
         )
