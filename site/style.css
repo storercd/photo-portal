@@ -58,6 +58,14 @@ button:focus-visible,
   border-color: var(--accent);
   box-shadow: 0 0 0 3px #7cb7ff33;
 }
+#session-desc {
+  max-width: 70ch;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 1rem;
+  white-space: pre-line;
+  text-align: center;
+  opacity: 0.85;
+}
 #grid {
   --row-height: 200px;
   display: flex;
