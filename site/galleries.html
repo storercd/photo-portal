@@ -8,17 +8,22 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <header>
-    <h1><a href="/galleries" id="title">Photos</a></h1>
-    <select id="session"><option value="">All sessions</option></select>
-    <select id="keyword"><option value="">All keywords</option></select>
-    <select id="rating">
-      <option value="0">Any rating</option>
-      <option value="1">★ 1+</option><option value="2">★ 2+</option>
-      <option value="3">★ 3+</option><option value="4">★ 4+</option>
-      <option value="5">★ 5</option>
-    </select>
-    <input id="search" type="search" placeholder="Search…">
+  <header class="gallery">
+    <div id="bar">
+      <h1><a href="/galleries" id="title">Photos</a></h1>
+      <button id="filter-toggle" type="button" aria-expanded="false" aria-controls="filters" hidden>Filters <span id="filter-count" hidden></span></button>
+    </div>
+    <div id="filters-wrap"><div id="filters">
+      <select id="session"><option value="">All sessions</option></select>
+      <select id="keyword"><option value="">All keywords</option></select>
+      <select id="rating">
+        <option value="0">Any rating</option>
+        <option value="1">★ 1+</option><option value="2">★ 2+</option>
+        <option value="3">★ 3+</option><option value="4">★ 4+</option>
+        <option value="5">★ 5</option>
+      </select>
+      <input id="search" type="search" placeholder="Search…">
+    </div></div>
   </header>
   <main id="collections" hidden></main>
   <main id="grid"></main>
