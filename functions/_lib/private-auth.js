@@ -1,5 +1,5 @@
 // Shared helpers for private collections: password hashes and signed per-collection cookies.
-// Env: PRIVATE_PASSWORDS (JSON {slug: "pbkdf2$iterations$salt$hash"}), PRIVATE_COOKIE_SECRET.
+// Env: PRIVATE_PASSWORDS (JSON {slug: hash | [hash, ...]}, hashes like "pbkdf2$iterations$salt$hash"), PRIVATE_COOKIE_SECRET.
 const enc = new TextEncoder();
 
 export const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -49,8 +49,12 @@ export async function verifyPassword(password, stored) {
   return equal(derived, b64u.decode(hash));
 }
 
-// Returns the slug whose password matches, or null.
-export async function findCollection(password, env) {
+// Passwords are case-insensitive and ignore surrounding whitespace.
+export const normalizePassword = (password) => String(password).trim().toLowerCase();
+
+// Returns the slug whose password matches, or null. A slug maps to one hash or an array of hashes.
+export async function findCollection(rawPassword, env) {
+  const password = normalizePassword(rawPassword);
   let table;
   try {
     table = JSON.parse(env.PRIVATE_PASSWORDS || "{}");
@@ -58,7 +62,10 @@ export async function findCollection(password, env) {
     return null;
   }
   for (const [slug, stored] of Object.entries(table)) {
-    if (SLUG_RE.test(slug) && (await verifyPassword(password, stored))) return slug;
+    if (!SLUG_RE.test(slug)) continue;
+    for (const hash of [].concat(stored)) {
+      if (await verifyPassword(password, hash)) return slug;
+    }
   }
   return null;
 }
