@@ -1,12 +1,14 @@
 {
   "title": "EHS Volleyball 2026",
+  "download": true,
   "min_rating": 3,
   "include_keywords": [
   ],
   "exclude_keywords": [
     "Task: *",
     "Date: *",
-    "My Selections"
+    "My Selections",
+    "Pose Reference"
   ],
   "rules": [
     {
