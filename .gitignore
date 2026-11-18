@@ -6,3 +6,5 @@ __pycache__/
 sync/.hash-cache.json
 .hash-cache.json
 node_modules/
+sync/collections/*.json
+!sync/collections/example.json

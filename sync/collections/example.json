@@ -1,0 +1,13 @@
+{
+  "title": "Example Collection",
+  "min_rating": 3,
+  "include_keywords": ["Team: *", "Sport: *"],
+  "exclude_keywords": ["Task: *"],
+  "rules": [
+    {
+      "project": "Example Project",
+      "start": "2026-01-01",
+      "end": "2026-12-31"
+    }
+  ]
+}
