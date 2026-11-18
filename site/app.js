@@ -83,7 +83,9 @@ function render() {
   const action = expOn ? actionSel.value : "";
   const primary = expOn ? primarySel.value : "";
   const players = expOn ? [...selectedPlayers] : [];
-  const active = [ses, keyword, minRating, q, action, primary, players.length].filter(Boolean).length;
+  const active = [ses, keyword, minRating, q, action, primary, players.length].filter(
+    Boolean,
+  ).length;
   sessionDesc.textContent = descriptions[ses] || "";
   sessionDesc.hidden = !sessionDesc.textContent;
   count.textContent = active;
