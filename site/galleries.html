@@ -23,8 +23,18 @@
         <option value="5">★ 5</option>
       </select>
       <input id="search" type="search" placeholder="Search…">
+      <button id="exp-toggle" type="button" aria-expanded="false" aria-controls="experimental" hidden>Experimental</button>
     </div></div>
   </header>
+  <section id="experimental" hidden>
+    <p>The experimental controls are in alpha, and we are still resolving known issues. However, feel free to contact me with any feedback.</p>
+    <div id="exp-controls">
+      <select id="action"><option value="">All actions</option></select>
+      <select id="primary"><option value="">All primary players</option></select>
+      <button id="players-clear" type="button" hidden>Clear players</button>
+    </div>
+    <div id="players" role="group" aria-label="Players in frame"></div>
+  </section>
   <main id="collections" hidden></main>
   <p id="session-desc" hidden></p>
   <main id="grid"></main>

@@ -66,6 +66,49 @@ button:focus-visible,
   text-align: center;
   opacity: 0.85;
 }
+#exp-toggle,
+#players-clear,
+.player-chip {
+  padding: 0.35rem 0.8rem;
+  background: #1d1d1d;
+  color: inherit;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+#exp-toggle[aria-pressed="true"],
+.player-chip[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #111;
+}
+#experimental {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 1rem;
+}
+#experimental p {
+  margin: 0 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+#exp-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+#players {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
+  gap: 0.35rem;
+}
+.player-chip {
+  padding: 0.35rem 0;
+  text-align: center;
+}
 #grid {
   --row-height: 200px;
   display: flex;

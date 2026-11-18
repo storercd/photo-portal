@@ -50,7 +50,17 @@ NS = {
 # Keywords that drive selection/sessions or are internal; never published as keywords.
 # "event:" is the legacy name for "session:". First match wins.
 DEFAULT_SESSION_PREFIXES = ("session:", "event:", "performance:", "theme:")
-INTERNAL_PREFIXES = ("project:", "pass:")
+# Action-import tags are published as structured fields (action, primary_player, players), never
+# as keywords. InvolvedPlayer, ActionNotes and BallInFrame are recognised but not published yet.
+ACTION_PREFIXES = (
+    "action:",
+    "actionnotes:",
+    "primaryplayer:",
+    "involvedplayer:",
+    "player:",
+    "ballinframe:",
+)
+INTERNAL_PREFIXES = ("project:", "pass:", *ACTION_PREFIXES)
 XMP_RE = re.compile(rb"<x:xmpmeta.*?</x:xmpmeta>", re.S)
 XMP_SCAN_BYTES = 1 << 20  # XMP lives near the start of the file
 HASH_CACHE = HERE / ".hash-cache.json"
@@ -192,6 +202,23 @@ def unaccounted_keywords(coll, files):
             if not k.lower().startswith(hidden) and not keyword_matches(k, known):
                 bad.setdefault(k, []).append(p.name)
     return bad
+
+
+def action_fields(keywords):
+    """Return the published action fields parsed from "Name: value" keywords."""
+
+    def values(name):
+        prefix = f"{name}:"
+        return [k[len(prefix) :].strip() for k in keywords if k.lower().startswith(prefix)]
+
+    fields = {}
+    if action := next(iter(values("action")), ""):
+        fields["action"] = action
+    if primary := next((v for v in values("primaryplayer") if v.isdigit()), ""):
+        fields["primary_player"] = int(primary)
+    if players := sorted({int(v) for v in values("player") if v.isdigit()}):
+        fields["players"] = players
+    return fields
 
 
 def session_name(coll, rule, keywords):
@@ -419,6 +446,7 @@ def build_collection(coll, files, store, dry_run):
                     if not k.lower().startswith(hidden)
                     and not keyword_matches(k, coll.get("exclude_keywords", []))
                 ],
+                **action_fields(keywords),
                 "rating": rating,
                 "date": date.strftime("%Y-%m-%d"),
                 "width": width,
