@@ -21,6 +21,12 @@ const sessionSel = document.getElementById("session");
 const sessionDesc = document.getElementById("session-desc");
 const keywordSel = document.getElementById("keyword");
 const ratingSel = document.getElementById("rating");
+const actionSel = document.getElementById("action");
+const primarySel = document.getElementById("primary");
+const playersBox = document.getElementById("players");
+const playersClear = document.getElementById("players-clear");
+const expToggle = document.getElementById("exp-toggle");
+const expPanel = document.getElementById("experimental");
 const search = document.getElementById("search");
 const bar = document.getElementById("bar");
 const toggle = document.getElementById("filter-toggle");
@@ -65,6 +71,8 @@ mobile.onchange = syncBar;
 let photos = [];
 let descriptions = {};
 let shown = [];
+let expOn = false;
+const selectedPlayers = new Set();
 let items = [];
 
 function render() {
@@ -72,7 +80,12 @@ function render() {
   const keyword = keywordSel.value;
   const minRating = +ratingSel.value;
   const q = search.value.trim().toLowerCase();
-  const active = [ses, keyword, minRating, q].filter(Boolean).length;
+  const action = expOn ? actionSel.value : "";
+  const primary = expOn ? primarySel.value : "";
+  const players = expOn ? [...selectedPlayers] : [];
+  const active = [ses, keyword, minRating, q, action, primary, players.length].filter(
+    Boolean,
+  ).length;
   sessionDesc.textContent = descriptions[ses] || "";
   sessionDesc.hidden = !sessionDesc.textContent;
   count.textContent = active;
@@ -81,6 +94,9 @@ function render() {
     (p) =>
       (!ses || p.session === ses) &&
       (!keyword || p.keywords.includes(keyword)) &&
+      (!action || p.action === action) &&
+      (!primary || p.primary_player === +primary) &&
+      players.every((n) => p.players?.includes(n)) &&
       p.rating >= minRating &&
       (!q || `${p.title} ${p.session} ${p.keywords.join(" ")}`.toLowerCase().includes(q)),
   );
@@ -116,6 +132,10 @@ function render() {
   if (ses) hash.set("session", ses);
   if (keyword) hash.set("keyword", keyword);
   if (minRating) hash.set("rating", minRating);
+  if (expOn) hash.set("exp", 1);
+  if (action) hash.set("action", action);
+  if (primary) hash.set("primary", primary);
+  if (players.length) hash.set("players", players.join(","));
   history.replaceState(null, "", location.search + (hash.size ? `#${hash}` : ""));
 }
 
@@ -124,6 +144,7 @@ async function showCollections() {
     await fetch(`${base}/collections.json`, { cache: "no-cache" })
   ).json();
   for (const el of filters) el.classList.add("hide");
+  expToggle.hidden = true;
   toggle.classList.add("hide");
   grid.hidden = true;
   list.hidden = false;
@@ -165,12 +186,84 @@ async function showCollection() {
   for (const name of [...new Set(photos.flatMap((p) => p.keywords))].sort()) {
     keywordSel.add(new Option(name, name));
   }
+  setupExperimental();
   const h = new URLSearchParams(location.hash.slice(1));
   sessionSel.value = h.get("session") || h.get("event") || "";
   keywordSel.value = h.get("keyword") || h.get("tag") || "";
   ratingSel.value = h.get("rating") || "0";
+  readExperimental(h);
   render();
 }
+
+// Action tags arrive as action, primary_player and players; show the toggle only when present.
+function setupExperimental() {
+  const counts = (values) => {
+    const m = new Map();
+    for (const v of values) m.set(v, (m.get(v) || 0) + 1);
+    return m;
+  };
+  const actions = counts(photos.map((p) => p.action).filter(Boolean));
+  const primaries = counts(photos.map((p) => p.primary_player).filter((n) => n != null));
+  const players = counts(photos.flatMap((p) => p.players || []));
+  expToggle.hidden = !(actions.size || primaries.size || players.size);
+  actionSel.replaceChildren(new Option("All actions", ""));
+  for (const [name, n] of [...actions].sort()) actionSel.add(new Option(`${name} (${n})`, name));
+  primarySel.replaceChildren(new Option("All primary players", ""));
+  for (const [num, n] of [...primaries].sort((a, b) => a[0] - b[0])) {
+    primarySel.add(new Option(`#${num} (${n})`, num));
+  }
+  playersBox.replaceChildren(
+    ...[...players]
+      .sort((a, b) => a[0] - b[0])
+      .map(([num, n]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "player-chip";
+        b.textContent = num;
+        b.title = `${n} photos`;
+        b.dataset.num = num;
+        b.setAttribute("aria-pressed", "false");
+        b.onclick = () => {
+          selectedPlayers.has(num) ? selectedPlayers.delete(num) : selectedPlayers.add(num);
+          syncExperimental();
+          render();
+        };
+        return b;
+      }),
+  );
+}
+
+function syncExperimental() {
+  expPanel.hidden = !expOn;
+  expToggle.setAttribute("aria-pressed", expOn);
+  expToggle.setAttribute("aria-expanded", expOn);
+  playersClear.hidden = !selectedPlayers.size;
+  for (const b of playersBox.children) {
+    b.setAttribute("aria-pressed", selectedPlayers.has(+b.dataset.num));
+  }
+}
+
+function readExperimental(h) {
+  expOn = !expToggle.hidden && (h.has("exp") || localStorage.getItem("experimental") === "1");
+  actionSel.value = h.get("action") || "";
+  primarySel.value = h.get("primary") || "";
+  selectedPlayers.clear();
+  for (const n of (h.get("players") || "").split(",")) if (n) selectedPlayers.add(+n);
+  syncExperimental();
+}
+
+expToggle.onclick = () => {
+  expOn = !expOn;
+  localStorage.setItem("experimental", expOn ? "1" : "0");
+  syncExperimental();
+  render();
+};
+playersClear.onclick = () => {
+  selectedPlayers.clear();
+  syncExperimental();
+  render();
+};
+actionSel.onchange = primarySel.onchange = render;
 
 keywordSel.onchange = ratingSel.onchange = search.oninput = render;
 sessionSel.onchange = () => {
